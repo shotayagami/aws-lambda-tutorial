@@ -41,6 +41,7 @@ python -m unittest discover -s tests -v   # Todo API のテスト (標準ライ�
 | 10 | Cognito + JWT 認証 | [src/step10_jwt_claims.py](src/step10_jwt_claims.py) / [docs/AUTH_COGNITO.md](docs/AUTH_COGNITO.md) / [template-auth.yaml](template-auth.yaml) |
 | 11 | CDK(Python)で書く | [docs/CDK.md](docs/CDK.md) / [cdk/](cdk/) |
 | + | Web/API 設計の選択肢 | [docs/WEB_API.md](docs/WEB_API.md) |
+| + | 参考: Cloudflare Workers / D1 / Pages との比較 | [docs/CLOUDFLARE.md](docs/CLOUDFLARE.md) |
 
 ## 🧠 30 秒で分かる Lambda
 
