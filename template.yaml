@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda 速習ガイド - Todo API (HTTP API + Lambda + DynamoDB)
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 10 # 秒。既定の 3 秒は DB 呼び出しにはやや短い
+    MemorySize: 256 # MB。CPU 性能もメモリに比例して増える
+
+Resources:
+  TodoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST # 使った分だけ課金
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  TodoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: todo_api.app.handler # <パッケージ>.<モジュール>.<関数>
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref TodoTable
+      Policies:
+        - DynamoDBCrudPolicy: # 最小権限: このテーブルの CRUD のみ
+            TableName: !Ref TodoTable
+      Events:
+        Todos:
+          Type: HttpApi
+          Properties:
+            Path: /todos
+            Method: ANY
+        TodoById:
+          Type: HttpApi
+          Properties:
+            Path: /todos/{id}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com/todos"

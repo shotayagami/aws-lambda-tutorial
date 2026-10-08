@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda 速習ガイド - S3 / SQS トリガー (Step 8, 9)
+
+Globals:
+  Function:
+    Runtime: python3.13
+    CodeUri: src/
+    Timeout: 30
+    MemorySize: 256
+
+Resources:
+  # ---------- Step 8: S3 トリガー ----------
+  UploadBucket:
+    Type: AWS::S3::Bucket
+
+  S3Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: step8_s3_trigger.handler
+      Policies:
+        - S3ReadPolicy: # 読み取りのみ。書き戻すなら出力先は別バケットにする
+            BucketName: !Ref UploadBucket
+      Events:
+        Uploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: incoming/
+                  - Name: suffix
+                    Value: .txt
+
+  # ---------- Step 9: SQS トリガー ----------
+  JobDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600 # 14 日
+
+  JobQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 180 # 関数 Timeout(30秒) の 6 倍
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt JobDeadLetterQueue.Arn
+        maxReceiveCount: 3 # 3 回失敗したら DLQ へ
+
+  SqsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: step9_sqs_worker.handler
+      Events:
+        Jobs:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt JobQueue.Arn
+            BatchSize: 10
+            FunctionResponseTypes:
+              - ReportBatchItemFailures # 部分バッチ レスポンスを有効化
